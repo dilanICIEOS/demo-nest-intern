@@ -196,12 +196,17 @@ export class AuthService {
   }
 
   async checkLoginStatus(
-    userId: string,
-    deviceId: string,
-    sessionId: string,
     token: string,
   ) {
-    const user = await this.userService.getUserById(userId);
+    const payload = this.sessionsService.getAccessTokenPayload(token);
+    if (!payload) {
+      return {
+        message: 'Invalid token',
+        isLoggedIn: false,
+        isTrusted: false,
+      };
+    }
+    const user = await this.userService.getUserById(payload.sub);
     if (!user) {
       return {
         message: 'User not found',
@@ -210,7 +215,7 @@ export class AuthService {
       };
     }
 
-    const device = await this.deviceService.getDeviceById(deviceId);
+    const device = await this.deviceService.getDeviceById(payload.deviceId);
     if (!device) {
       return {
         message: 'Device not found',
@@ -219,9 +224,9 @@ export class AuthService {
       };
     }
     const isSessionValid = await this.sessionsService.validateSession(
-      sessionId,
-      userId,
-      deviceId,
+      payload.sessionId,
+      payload.sub,
+      payload.deviceId,
       token,
     );
     if (!isSessionValid) {
@@ -239,8 +244,14 @@ export class AuthService {
     };
   }
 
-  async logout() {
-    // Implement logout logic here
+  async logout(accessToken: string) {
+    const session = await this.sessionsService.deleteSessionByAccessToken(accessToken);
+    if (!session) {
+      throw new BadRequestException('Invalid session');
+    }
+    return {
+      message: 'Logout successful',
+    };
   }
 
   async verifyEmail(userId: string, token: string) {

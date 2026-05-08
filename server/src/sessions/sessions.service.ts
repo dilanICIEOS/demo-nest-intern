@@ -61,7 +61,8 @@ export class SessionsService {
       session.userId !== userId ||
       session.deviceId !== deviceId ||
       !isTokenValid ||
-      session.expiresAt < new Date()
+      session.expiresAt < new Date() ||
+      session.isRevoked
     ) {
       return false;
     }
@@ -69,7 +70,6 @@ export class SessionsService {
   }
 
   async createSession(userId: string, deviceId: string): Promise<Session> {
-    // const hashedRefreshToken = await bcrypt.hash(RefreshToken, 10);
     const sessionExpiresDays = Number(process.env.SESSION_EXPIRES_DAYS);
     const expiresAt = new Date(
       Date.now() + sessionExpiresDays * 24 * 60 * 60 * 1000,
@@ -93,5 +93,34 @@ export class SessionsService {
       where: { id: sessionId },
       data: { hashedRefreshToken },
     });
+  }
+
+  async deleteSessionByAccessToken(
+    accessToken: string,
+  ): Promise<Session | null> {
+    try {
+      const decoded = this.jwtService.verify(accessToken, {
+        secret: process.env.JWT_ACCESS_SECRET,
+      });
+      const sessionId = decoded.sessionId;
+      return await this.prismaService.session.update({
+        where: { id: sessionId },
+        data: { isRevoked: true },
+      });
+    } catch (error) {
+      console.error('Error revoking session:', error);
+      return null;
+    }
+  }
+
+  getAccessTokenPayload(token: string): any {
+    try {
+      return this.jwtService.verify(token, {
+        secret: process.env.JWT_ACCESS_SECRET,
+      });
+    } catch (error) {
+      console.error('Error verifying access token:', error);
+      return null;
+    }
   }
 }
