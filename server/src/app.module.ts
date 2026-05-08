@@ -27,14 +27,14 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
     MailerModule.forRoot({
       transport: {
         host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT),
+        port: Number(process.env.SMTP_PORT) || 1025,
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
       },
       template: {
-        dir: __dirname + '/templates',
+        dir: __dirname + '/emails/templates',
         adapter: new HandlebarsAdapter(),
         options: {
           strict: true,

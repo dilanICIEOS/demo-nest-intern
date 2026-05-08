@@ -5,6 +5,7 @@ import { UsersModule } from 'src/users/users.module';
 import { DevicesModule } from 'src/devices/devices.module';
 import { SessionsModule } from 'src/sessions/sessions.module';
 import { OtpModule } from 'src/otp/otp.module';
+import { EmailsModule } from 'src/emails/emails.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { OtpModule } from 'src/otp/otp.module';
     DevicesModule,
     SessionsModule,
     OtpModule,
+    EmailsModule,
   ],
   providers: [AuthService],
   controllers: [AuthController],

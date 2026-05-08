@@ -15,6 +15,7 @@ import { SessionsService } from 'src/sessions/sessions.service';
 import { OtpService } from 'src/otp/otp.service';
 import { JwtService } from '@nestjs/jwt';
 import { Session } from '../generated/prisma';
+import { EmailsService } from 'src/emails/emails.service';
 
 @Injectable()
 export class AuthService {
@@ -23,6 +24,7 @@ export class AuthService {
     private deviceService: DevicesService,
     private sessionsService: SessionsService,
     private otpService: OtpService,
+    private emailService: EmailsService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -57,15 +59,45 @@ export class AuthService {
       throw new BadRequestException('Invalid email or password');
     }
 
+    if (!user.isEmailVerified) {
+      const verifyToken = Math.random().toString(36).substring(2, 15);
+      await this.userService.setUpdatePasswordToken(email, verifyToken);
+      await this.emailService.sendEmail({
+        to: email,
+        subject: 'Your Email Verification Link',
+        template: 'emailVerification',
+        context: {
+          verificationLink: `http://localhost:3000/auth/verify-email?userId=${user.id}&token=${verifyToken}`,
+        },
+      });
+      return {
+        message: 'Email not verified. Verification link sent to email.',
+        userId: user.id,
+        deviceId: null,
+        refreshToken: null,
+        accessToken: null,
+      };
+    }
+
     const isMatch = await bcrypt.compare(password, user.hashedPassword);
 
     if (!isMatch) {
       throw new BadRequestException('Invalid email or password');
     }
 
-    let device: { id: string; createdAt: Date; isTrusted: boolean; userId: string; deviceFingerprint: string; deviceName: string; userAgent: string; ipAddress: string; lastUsedAt: Date; } | null = null;
+    let device: {
+      id: string;
+      createdAt: Date;
+      isTrusted: boolean;
+      userId: string;
+      deviceFingerprint: string;
+      deviceName: string;
+      userAgent: string;
+      ipAddress: string;
+      lastUsedAt: Date;
+    } | null = null;
 
-    if(deviceId) {
+    if (deviceId) {
       device = await this.deviceService.getDeviceById(deviceId as string);
     }
 
@@ -88,7 +120,7 @@ export class AuthService {
       device = await this.deviceService.addOrUpdateDevice(
         req,
         user.id,
-        isTrust || false,
+        isTrust ?? device?.isTrusted ?? false,
       );
       return {
         message: 'Login successful',
@@ -102,7 +134,7 @@ export class AuthService {
         device = await this.deviceService.addOrUpdateDevice(
           req,
           user.id,
-          isTrust || false,
+          false,
         );
       }
       if (!otp && user.isEnabled2FA) {
@@ -147,15 +179,16 @@ export class AuthService {
         session.id,
         refreshToken,
       );
+      console.log('isTrust:', isTrust);
       device = await this.deviceService.addOrUpdateDevice(
         req,
         user.id,
-        isTrust || false,
+        isTrust ?? device?.isTrusted ?? false,
       );
       return {
         message: 'Login successful',
         userId: user.id,
-        deviceId: device.id,
+        deviceId: device,
         refreshToken,
         accessToken,
       };
@@ -210,11 +243,33 @@ export class AuthService {
     // Implement logout logic here
   }
 
-  async verifyEmail(token: string) {
-    // Implement email verification logic here
+  async verifyEmail(userId: string, token: string) {
+    const user = await this.userService.getUserById(userId);
+    if (!user) {
+      throw new BadRequestException('Invalid token');
+    }
+    if (user.updatePasswordToken !== token) {
+      throw new BadRequestException('Invalid token');
+    }
+    await this.userService.markEmailAsVerified(user.email);
+    await this.userService.setUpdatePasswordToken(user.email, "");
+    return {
+      message: 'Email verified successfully',
+    };
   }
 
   async requestPasswordReset(email: string) {
     // Implement password reset request logic here
+  }
+
+  async enableOrDisable2FA(userId: string, enable: boolean) {
+    const user = await this.userService.getUserById(userId);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    await this.userService.update2FA(user.email, enable);
+    return {
+      message: `2FA ${enable ? 'enabled' : 'disabled'} successfully`,
+    };
   }
 }

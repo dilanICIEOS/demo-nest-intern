@@ -23,5 +23,5 @@ export class LoginDto {
   deviceId?: string;
 
   @IsBoolean()
-  isTrust?: boolean = false;
+  isTrust?: boolean;
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseInterceptors } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dtos/register.dto';
 import { LoggingAndResponseInterceptor } from 'src/interceptors/loggingAndResponse.interceptor';
@@ -21,4 +21,19 @@ export class AuthController {
     const response = await this.authService.register(registerDto);
     return response;
   }
+
+  @Get('verify-email')
+  async verifyEmail(@Req() req: Request): Promise<any> {
+    const token = req.query.token as string;
+    const userId = req.query.userId as string;
+    const response = await this.authService.verifyEmail(userId, token);
+    return response;
+  }
+
+  @Post('change-2fa')
+  async change2FA(@Body() body: { userId: string; enable: boolean }): Promise<any> {
+    const response = await this.authService.enableOrDisable2FA(body.userId, body.enable);
+    return response;
+  }
+  
 }

@@ -5,5 +5,6 @@ export type EmailData = {
   context: {
     otp?: string;
     resetPasswordLink?: string;
+    verificationLink?: string;
   };
 };

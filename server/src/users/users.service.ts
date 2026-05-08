@@ -82,4 +82,12 @@ export class UsersService {
     });
     return user;
   }
+
+  async update2FA(email: string, enable: boolean): Promise<User> {
+    const updatedUser = await this.prisma.user.update({
+      where: { email },
+      data: { isEnabled2FA: enable },
+    });
+    return updatedUser;
+  }
 }
