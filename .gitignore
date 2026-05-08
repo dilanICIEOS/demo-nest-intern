@@ -1,21 +1,17 @@
 node_modules/
-
 # Build outputs
 dist/
 build/
 coverage/
 out/
-
 # React / frontend
 .next/
 vite.svg
 *.tsbuildinfo
-
 # Environment files
 .env
 .env.*
 !.env.example
-
 # Logs
 logs/
 *.log
@@ -23,12 +19,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-
 # Runtime
 *.pid
 *.seed
 *.pid.lock
-
 # OS / editor
 .DS_Store
 Thumbs.db
@@ -36,7 +30,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
-
 # Cache
 .cache/
 .eslintcache
