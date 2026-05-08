@@ -67,4 +67,21 @@ export class AuthController {
     const isValid = await this.authService.checkLoginStatus(accessToken);
     return { loggedIn: isValid };
   }
+
+  @Get('request-password-reset')
+  async requestPasswordReset(@Req() req: Request): Promise<any> {
+    const email = req.query.email as string;
+    if (!email) {
+      throw new Error('Email is required for password reset');
+    }
+    const response = await this.authService.requestPasswordReset(email);
+    return response;
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Req() req: Request): Promise<any> {
+    const { email, token, newPassword } = req.body;
+    const response = await this.authService.resetPassword(email, token, newPassword);
+    return response;
+  }
 }

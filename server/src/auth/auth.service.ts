@@ -270,7 +270,39 @@ export class AuthService {
   }
 
   async requestPasswordReset(email: string) {
-    // Implement password reset request logic here
+    const user = await this.userService.getUserByEmail(email);
+    if (!user) {
+      throw new BadRequestException('Email not found');
+    }
+    const resetPasswordToken = Math.random().toString(36).substring(2, 15);
+    await this.userService.setUpdatePasswordToken(email, resetPasswordToken);
+    await this.emailService.sendEmail({
+      to: email,
+      subject: 'Password Reset Request',
+      template: 'reset-password',
+      context: {
+        resetPasswordToken,
+      },
+    });
+    return {
+      message: 'Password reset token sent to email',
+    };
+  }
+
+  async resetPassword(email: string, token: string, newPassword: string) {
+    const user = await this.userService.getUserByEmail(email);
+    if (!user) {
+      throw new BadRequestException('Email not found');
+    }
+    if (user.updatePasswordToken !== token) {
+      throw new BadRequestException('Invalid token');
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.userService.updatePassword(user.email, hashedPassword);
+    await this.userService.setUpdatePasswordToken(user.email, "");
+    return {
+      message: 'Password reset successfully'
+    };
   }
 
   async enableOrDisable2FA(userId: string, enable: boolean) {

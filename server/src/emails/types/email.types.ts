@@ -4,7 +4,7 @@ export type EmailData = {
   template: string;
   context: {
     otp?: string;
-    resetPasswordLink?: string;
+    resetPasswordToken?: string;
     verificationLink?: string;
   };
 };
