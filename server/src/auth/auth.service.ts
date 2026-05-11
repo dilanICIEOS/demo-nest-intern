@@ -13,7 +13,6 @@ import { Request } from 'express';
 import { DevicesService } from 'src/devices/devices.service';
 import { SessionsService } from 'src/sessions/sessions.service';
 import { OtpService } from 'src/otp/otp.service';
-import { JwtService } from '@nestjs/jwt';
 import { Session } from '../generated/prisma';
 import { EmailsService } from 'src/emails/emails.service';
 
@@ -98,7 +97,7 @@ export class AuthService {
     } | null = null;
 
     if (deviceId) {
-      device = await this.deviceService.getDeviceById(deviceId as string);
+      device = await this.deviceService.getDeviceById(deviceId);
     }
 
     if (device && (device.isTrusted || !user.isEnabled2FA)) {
@@ -195,9 +194,7 @@ export class AuthService {
     }
   }
 
-  async checkLoginStatus(
-    token: string,
-  ) {
+  async checkLoginStatus(token: string) {
     const payload = this.sessionsService.getAccessTokenPayload(token);
     if (!payload) {
       return {
@@ -245,7 +242,8 @@ export class AuthService {
   }
 
   async logout(accessToken: string) {
-    const session = await this.sessionsService.deleteSessionByAccessToken(accessToken);
+    const session =
+      await this.sessionsService.deleteSessionByAccessToken(accessToken);
     if (!session) {
       throw new BadRequestException('Invalid session');
     }
@@ -263,7 +261,7 @@ export class AuthService {
       throw new BadRequestException('Invalid token');
     }
     await this.userService.markEmailAsVerified(user.email);
-    await this.userService.setUpdatePasswordToken(user.email, "");
+    await this.userService.setUpdatePasswordToken(user.email, '');
     return {
       message: 'Email verified successfully',
     };
@@ -299,9 +297,9 @@ export class AuthService {
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await this.userService.updatePassword(user.email, hashedPassword);
-    await this.userService.setUpdatePasswordToken(user.email, "");
+    await this.userService.setUpdatePasswordToken(user.email, '');
     return {
-      message: 'Password reset successfully'
+      message: 'Password reset successfully',
     };
   }
 

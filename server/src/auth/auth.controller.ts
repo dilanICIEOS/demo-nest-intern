@@ -4,12 +4,13 @@ import {
   Get,
   Post,
   Req,
+  Res,
   UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dtos/register.dto';
 import { LoggingAndResponseInterceptor } from 'src/interceptors/loggingAndResponse.interceptor';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { LoginDto } from './dtos/login.dto';
 
 @UseInterceptors(LoggingAndResponseInterceptor)
@@ -18,8 +19,20 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
-  async login(@Body() loginDto: LoginDto, @Req() req: Request): Promise<any> {
+  async login(
+    @Body() loginDto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<any> {
     const response = await this.authService.login(loginDto, req);
+    if (response.refreshToken) {
+      res.cookie('auth_cookie', response, {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'lax',
+        maxAge: 1000 * 60 * 60 * 24 * 30,
+      });
+    }
     return response;
   }
 
@@ -49,12 +62,20 @@ export class AuthController {
   }
 
   @Get('logout')
-  async logout(@Req() req: Request): Promise<any> {
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<any> {
     const accessToken = req.headers.authorization?.replace('Bearer ', '');
     if (!accessToken) {
       throw new Error('Access token is required for logout');
     }
     const response = await this.authService.logout(accessToken);
+    res.clearCookie('auth_cookie', {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+    });
     return response;
   }
 
@@ -81,7 +102,11 @@ export class AuthController {
   @Post('reset-password')
   async resetPassword(@Req() req: Request): Promise<any> {
     const { email, token, newPassword } = req.body;
-    const response = await this.authService.resetPassword(email, token, newPassword);
+    const response = await this.authService.resetPassword(
+      email,
+      token,
+      newPassword,
+    );
     return response;
   }
 }
